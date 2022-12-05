@@ -1,0 +1,9 @@
+NOT function
+
+For:
+x = -1 -> t = +1
+x = +1 -> t = -1
+
+Since our inputs are 1 dimensional, the hyperplane of the function is a point.
+
+Any point between -1 and +1 can accurately separate both points.

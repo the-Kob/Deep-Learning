@@ -1,0 +1,184 @@
+1.
+Convergence is achieved when the weights stop changing.
+
+w = (0, 0, 0)T
+
+x1 = (1, -1, 0)T
+
+perceptron(x1) = sign(w * x1) = sign(0) = 1
+
+Perceptron made a mistake, so we correct with the perceptron output
+
+w = w + (y1 - perceptron(x1)) * x1 
+    = (0, 0, 0)T + (-1 - 1) * (1, -1, 0)T 
+    = (-1, 1, 0)
+
+-------------------------------------------------------------------
+w = (-1, 1, 0)T
+
+x2 = (1, 0, 0.25)T
+
+perceptron(x2) = sign(w * x2) = sign(-1 * 1 + 0 + 0 ) = -1
+
+Perceptron made a mistake, so we correct with the perceptron output
+
+w = w + (y2 - perceptron(x2)) * x2
+    = (-1, 1, 0) + sign(1 - (-1)) * (1, 0, 0.25)
+    = (0, 1, 0.25)
+
+-------------------------------------------------------------------
+w = (0, 1, 0.25)T
+
+x3 = (1, 1, 1)T
+
+perceptron(x3) = sign(w * x3) = sign(0 + 1 * 1 + 1 * 0.25) = 1
+
+No mistake was made
+
+-------------------------------------------------------------------
+w = (0, 1, 0.25)T
+
+x4 = (1, 1, -1)T
+
+perceptron(x4) = sign(w * x4) = sign(0 + 1 * 1 + 0.25 * (-1)) = 1
+
+Perceptron made a mistake, so we correct with the perceptron output
+
+w = w + (y4 - perceptron(x4)) * x4
+    = (0, 1, 0.25) + sign(-1 - 1) * (1, 1, -1)
+    = (-1, 0, 1.25)
+
+-------------------------------------------------------------------
+END OF 1st EPOCH
+-------------------------------------------------------------------
+
+w = (-1, 0, 1.25)T
+
+x1 = (1, -1, 0)T
+
+perceptron(x1) = sign(w * x1) = sign(-1 * 1 + 0 + 0) = -1
+
+No mistake was made
+
+-------------------------------------------------------------------
+w = (-1, 0, 1.25)T
+
+x2 = (1, 0, 0.25)T
+
+perceptron(x2) = sign(w * x2) = sign(-1 * 1 + 0 + 1.25 * 0.5) = -1
+
+Perceptron made a mistake, so we correct with the perceptron output
+
+w = w + (y2 - perceptron(x2)) * x2
+    = (-1, 0, 1.25) + sign(1 - (-1)) * (1, 0, 0.25)
+    = (0, 0, 1.5)
+
+-------------------------------------------------------------------
+w = (0, 0, 1.5)T
+
+x3 = (1, 1, 1)T
+
+perceptron(x3) = sign(w * x3) = sign(0 + 0 + 1.5 * 1) = 1
+
+No mistake was made
+
+-------------------------------------------------------------------
+w = (0, 0, 1.5)T
+
+x4 = (1, 1, -1)T
+
+perceptron(x4) = sign(w * x4) = sign(0 + 0 + 1.5 * -1) = -1
+
+No mistake was made
+
+-------------------------------------------------------------------
+END OF 2nd EPOCH
+-------------------------------------------------------------------
+
+w = (0, 0, 1.5)T
+
+x1 = (1, -1, 0)T
+
+perceptron(x1) = sign(w * x1) = sign(0 + 0 + 0) = 1
+
+Perceptron made a mistake, so we correct with the perceptron output
+
+w = w + (y1 - perceptron(x1)) * x1 =
+    = (0, 0, 1.5) + sign(-1 - 1) * (1, -1, 0)
+    = (-1, 1, 1.5)
+
+-------------------------------------------------------------------
+w = (-1, 1, 1.5)T
+
+x2 = (1, 0, 0.25)T
+
+perceptron(x2) = sign(w * x2) = sign(-1 * 1 + 0 + 1.5 * 0.25) = -1
+
+Perceptron made a mistake, so we correct with the perceptron output
+
+w = w + (y2 - perceptron(x2)) * x2
+    = (-1, 1, 1.5) + sign(1 - (-1)) * (1, 0, 0.25)
+    = (0, 1, 1.75)
+
+-------------------------------------------------------------------
+w = (0, 1, 1.75)T
+
+x3 = (1, 1, 1)T
+
+perceptron(x3) = sign(w * x3) = sign(0 + 1 * 1 + 1.75 * 1) = 1
+
+No mistake was made
+
+-------------------------------------------------------------------
+w = (0, 1, 1.75)T
+
+x4 = (1, 1, -1)T
+
+perceptron(x4) = sign(w * x4) = sign(0 + 1 * 1 + 1.75 * (-1)) = -1
+
+No mistake was made
+
+-------------------------------------------------------------------
+END OF 3rd EPOCH
+-------------------------------------------------------------------
+
+w = (0, 1, 1.75)T
+
+x1 = (1, -1, 0)T
+
+perceptron(x1) = sign(w * x1) = sign(0 + 1 * (-1) + 0) = -1
+
+No mistake was made
+
+-------------------------------------------------------------------
+w = (0, 1, 1.75)T
+
+x2 = (1, 0, 0.25)T
+
+perceptron(x2) = sign(w * x2) = sign(0 + 0 + 1.75 * 0.25) = 1
+
+No mistake was made
+
+-------------------------------------------------------------------
+w = (0, 1, 1.75)T
+
+x3 = (1, 1, 1)T
+
+perceptron(x3) = sign(w * x3) = sign(0 + 1 * 1 + 1 * 1.75) = 1
+
+No mistake was made
+
+-------------------------------------------------------------------
+w = (0, 1, 1.75)T
+
+x4 = (1, 1, -1)T
+
+perceptron(x4) = sign(w * x4) = sign(0 + 1 * 1 + 1.75 * (-1)) = -1
+
+No mistake was made
+
+-------------------------------------------------------------------
+END OF 4th EPOCH
+-------------------------------------------------------------------
+
+In conclusion, we achieved convergence by the 3rd epoch (verified by simulating the 4th).

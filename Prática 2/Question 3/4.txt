@@ -1,0 +1,13 @@
+XOR function
+
+For:
+x = (-1, -1) -> t = -1
+x = (-1, +1) -> t = +1
+x = (+1, -1) -> t = +1
+x = (+1, +1) -> t = -1
+
+Since our inputs are 1 dimensional, the hyperplane of the function is a point.
+
+
+There isn't a weight vector that defines a boundary that separates the points.
+By plotting the points the above statement becomes aparent.
