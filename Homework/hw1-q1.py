@@ -55,8 +55,8 @@ class Perceptron(LinearModel):
         """
         # Q1.1a - I think this is correct
 
-        # Get highest score -> predicted class
-        y_hat = np.dot(self.W, x_i.T).argmax(axis=0)
+        # Calculate highest score -> get predicted class
+        y_hat = np.dot(self.W, x_i).argmax(axis=0)
 
         #If a mistake is committed, correct it
         if(y_hat != y_i):
@@ -64,7 +64,7 @@ class Perceptron(LinearModel):
             self.W[y_hat, :] -= x_i.T # Decrease weight of incorrect class
 
 class LogisticRegression(LinearModel):
-    #def train_epoch(self, X, y, **kwargs): # Dont we need to choose a random data point intead of going through each one??
+    #def train_epoch(self, X, y, **kwargs): Dont we need to choose a random data point intead of going through each one??
 
     #Does our weight already have bias? np.zeros((n_classes, n_features + 1 ))....
 
@@ -77,10 +77,10 @@ class LogisticRegression(LinearModel):
         # Q1.1b - I think this is correct
 
         # Calculate predicted class (Lecture 3, 17)
-        y_hat = np.dot(self.W, x_i.T).argmax(axis=0)
+        y_hat = np.dot(self.W, x_i).argmax(axis=0)
 
         # Stochastic gradient descent formula
-        self.W += learning_rate * ((y_i - y_hat) * x_i.T)
+        self.W += learning_rate * (y_i - y_hat) * x_i.T
         
 
 
