@@ -20,7 +20,7 @@ def configure_seed(seed):
 
 class LinearModel(object):
     def __init__(self, n_classes, n_features, **kwargs):
-        self.W = np.zeros((n_classes, n_features))
+        self.W = np.zeros((n_classes, n_features)) #Does our weight already have bias? np.zeros((n_classes, n_features + 1 ))....
 
     def update_weight(self, x_i, y_i, **kwargs):
         raise NotImplementedError
@@ -65,8 +65,6 @@ class Perceptron(LinearModel):
 
 class LogisticRegression(LinearModel):
     #def train_epoch(self, X, y, **kwargs): Dont we need to choose a random data point intead of going through each one??
-
-    #Does our weight already have bias? np.zeros((n_classes, n_features + 1 ))....
 
     def update_weight(self, x_i, y_i, learning_rate=0.001):
         """
