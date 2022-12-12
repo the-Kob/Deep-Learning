@@ -102,6 +102,15 @@ class MLP(object):
     # in main().
     def __init__(self, n_classes, n_features, hidden_size):
         # Initialize an MLP with a single hidden layer.
+
+        # Initialize weight matrix with normal distribution N(mu, sigma^2)
+        mu, sigma = 0.1, 0.1
+        self.W = np.random.normal(mu, sigma, n_classes * n_features)
+        self.W = np.reshape(self.W, (n_classes, n_features))
+
+        # Add biases (equal to zero)
+        np.concatenate([np.zeros((n_classes, 1)), self.W], axis=1) # First column of zero values (bias)???
+
         raise NotImplementedError
 
     def predict(self, X):
