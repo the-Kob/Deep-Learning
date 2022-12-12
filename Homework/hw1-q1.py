@@ -75,10 +75,24 @@ class LogisticRegression(LinearModel):
         # Q1.1b - I think this is correct
 
         # Calculate predicted class (Lecture 3, 17)
-        y_hat = np.dot(self.W, x_i).argmax(axis=0)
+        #y_hat = np.dot(self.W, x_i).argmax(axis=0)
 
         # Stochastic gradient descent formula
-        self.W += learning_rate * (y_i - y_hat) * x_i.T
+        #self.W += learning_rate * (y_i - y_hat) * x_i.T
+
+        # Calculate scores according to the model (n_classes x 1).
+        scores = np.dot(self.W, x_i)[:,None]
+
+        # One-hot vector with the gold label (n_classes x 1).
+        y_one_hot = np.zeros((np.size(self.W, 0), 1))
+        y_one_hot[y_i] = 1
+
+        # Conditional probability of y, according to softmax (n_classes x 1).
+        z = np.sum(np.exp(scores))
+        y_probabilities = np.exp(scores) / z
+
+        # Update weights with stochastic gradient descent
+        self.W += learning_rate * (y_one_hot - y_probabilities) * x_i[None, :]
         
 
 
