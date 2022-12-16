@@ -9,6 +9,9 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
+import torch
+import torch.nn as nn
+
 import utils
 
 
@@ -64,8 +67,6 @@ class Perceptron(LinearModel):
             self.W[y_hat, :] -= x_i.T # Decrease weight of incorrect class
 
 class LogisticRegression(LinearModel):
-    #def train_epoch(self, X, y, **kwargs): Dont we need to choose a random data point intead of going through each one??
-
     def update_weight(self, x_i, y_i, learning_rate=0.001):
         """
         x_i (n_features): a single training example
@@ -105,19 +106,41 @@ class MLP(object):
 
         # Initialize weight matrix with normal distribution N(mu, sigma^2)
         mu, sigma = 0.1, 0.1
-        self.W = np.random.normal(mu, sigma, n_classes * n_features)
-        self.W = np.reshape(self.W, (n_classes, n_features))
+        self.W_1 = np.random.normal(mu, sigma, n_classes * n_features)
+        self.W_2 = np.random.normal(mu, sigma, n_classes * n_classes)
+        self.W_1 = np.reshape(self.W_1, (n_classes, n_features))
+        self.W_2 = np.reshape(self.W_1, (n_classes, n_features)) # Change
+
+        self.b_1 = 0 # Should be a vector (n_classes x n_examples)
+        self.b_2 = 0 # Should be a vector (n_classes x n_examples)
 
         # Add biases (equal to zero)
-        np.concatenate([np.zeros((n_classes, 1)), self.W], axis=1) # First column of zero values (bias)???
-
-        raise NotImplementedError
+        # np.concatenate([np.zeros((n_classes, 1)), self.W_1], axis=1) # First column of zero values (bias)???
 
     def predict(self, X):
         # Compute the forward pass of the network. At prediction time, there is
         # no need to save the values of hidden nodes, whereas this is required
         # at training time.
-        raise NotImplementedError
+
+        self.z_1 = np.matmul(self.W_1, X.T) + self.b_1 # (n_classes x n_examples)
+        self.h_1 = np.maximum(0, self.z_1) # ReLU activation, (n_classes x n_examples)
+
+        self.z_2 = self.W_2 * self.h_1.T + self.b_2 # Should be (n_classes x n_examples)
+
+        # Softmax 
+        Z_each_example = (np.exp(self.z_2)).sum(axis=0) # (1 x n_examples)
+
+        n_examples = np.size(self.X, 1)
+        n_classes = np.size(self.W_1, 0)
+
+        y_probabilities = np.zeroes(n_classes, n_examples) # (n_classes x n_examples)
+        y_hat = np.zeroes(1, n_examples) # (1 x n_examples)
+
+        for i in range(n_examples+1): # For each example
+            y_probabilities[:,i] = np.exp(self.z_2[:,i]) / Z_each_example[0,i] # Should be (n_classes x n_examples)
+            y_hat[1,i] = y_probabilities.argmax(x=0) # Should be (1 x n_examples)
+
+        raise y_hat
 
     def evaluate(self, X, y):
         """
