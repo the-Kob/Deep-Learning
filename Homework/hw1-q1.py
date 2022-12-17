@@ -75,12 +75,6 @@ class LogisticRegression(LinearModel):
         """
         # Q1.1b - I think this is correct
 
-        # Calculate predicted class (Lecture 3, 17)
-        #y_hat = np.dot(self.W, x_i).argmax(axis=0)
-
-        # Stochastic gradient descent formula
-        #self.W += learning_rate * (y_i - y_hat) * x_i.T
-
         # Calculate scores according to the model (n_classes x 1).
         scores = np.dot(self.W, x_i)[:,None]
 
@@ -104,43 +98,41 @@ class MLP(object):
     def __init__(self, n_classes, n_features, hidden_size):
         # Initialize an MLP with a single hidden layer.
 
-        # Initialize weight matrix with normal distribution N(mu, sigma^2)
+        self.n_classes = n_classes
+        self.n_features = n_features
+
+        # Initialize weight matrices with normal distribution N(mu, sigma^2)
         mu, sigma = 0.1, 0.1
-        self.W_1 = np.random.normal(mu, sigma, n_classes * n_features)
-        self.W_2 = np.random.normal(mu, sigma, n_classes * n_classes)
-        self.W_1 = np.reshape(self.W_1, (n_classes, n_features))
-        self.W_2 = np.reshape(self.W_1, (n_classes, n_features)) # Change
+        self.W_1 = np.random.normal(mu, sigma, hidden_size * n_features)
+        self.W_1 = np.reshape(self.W_1, (hidden_size, n_features)) # (hidden_size x n_features)
 
-        self.b_1 = 0 # Should be a vector (n_classes x n_examples)
-        self.b_2 = 0 # Should be a vector (n_classes x n_examples)
+        self.W_2 = np.random.normal(mu, sigma, n_classes * hidden_size)
+        self.W_2 = np.reshape(self.W_2, (n_classes, hidden_size)) # (n_classes x hidden_size)
 
-        # Add biases (equal to zero)
-        # np.concatenate([np.zeros((n_classes, 1)), self.W_1], axis=1) # First column of zero values (bias)???
+        # Initialize bias to zeroes vector
+        self.b_1 = np.zeroes(hidden_size, 1) # (hidden_size)
+        self.b_2 = np.zeroes(n_classes, 1) # (n_classes)
 
     def predict(self, X):
+        """
+        X (n_examples x n_features):
+        """
         # Compute the forward pass of the network. At prediction time, there is
         # no need to save the values of hidden nodes, whereas this is required
         # at training time.
 
-        self.z_1 = np.matmul(self.W_1, X.T) + self.b_1 # (n_classes x n_examples)
-        self.h_1 = np.maximum(0, self.z_1) # ReLU activation, (n_classes x n_examples)
+        self.z_1 = np.matmul(self.W_1, X.T) + self.b_1 # (hidden_size x n_examples)
+        self.h_1 = np.maximum(0, self.z_1) # ReLU activation, (hidden_size x n_examples)
 
-        self.z_2 = self.W_2 * self.h_1.T + self.b_2 # Should be (n_classes x n_examples)
+        self.h_2 = np.matmul(self.W_2, self.h_1) + self.b_2 # (n_classes x n_examples)
 
-        # Softmax 
-        Z_each_example = (np.exp(self.z_2)).sum(axis=0) # (1 x n_examples)
+        # Softmax application
+        Z_each_example = (np.exp(self.h_2)).sum(axis=0) # (1 x n_examples)
 
-        n_examples = np.size(self.X, 1)
-        n_classes = np.size(self.W_1, 0)
+        self.z_2 = np.exp(self.h_2) / Z_each_example # (n_classes x n_examples) - verified
+        y_hat = self.z_2.argmax(axis=0) # Should be (n_examples) so we can evaluate - verified
 
-        y_probabilities = np.zeroes(n_classes, n_examples) # (n_classes x n_examples)
-        y_hat = np.zeroes(1, n_examples) # (1 x n_examples)
-
-        for i in range(n_examples+1): # For each example
-            y_probabilities[:,i] = np.exp(self.z_2[:,i]) / Z_each_example[0,i] # Should be (n_classes x n_examples)
-            y_hat[1,i] = y_probabilities.argmax(x=0) # Should be (1 x n_examples)
-
-        raise y_hat
+        return y_hat
 
     def evaluate(self, X, y):
         """
@@ -153,8 +145,38 @@ class MLP(object):
         n_possible = y.shape[0]
         return n_correct / n_possible
 
+    def update_weight(self, x_i, y_i, learning_rate, exampleIndex):
+        """
+        x_i (n_features): a single training example
+        y_i: the gold label for that example
+        learning_rate (float): keep it at the default value for your plots
+        """
+        # Cross entropy loss is (y-y_hat) * x
+
+        dL_dz_2 = -x_i # (n_features)
+        dL_dW_2 = np.dot(dL_dz_2, self.h_2[:, exampleIndex])
+        dL_db_2 = dL_dz_2 # (hidden_size)
+
+        dL_dh_1 = (self.W_2.T * dL_dz_2)[:, exampleIndex] # (hidden_size)
+        dL_dz_1 = dL_dh_1 * 1 # The derivative of ReLU is one, (hidden_size)
+        dL_dW_1 = np.dot(dL_dz_1, self.h_2[:, exampleIndex])
+        dL_db_1 = dL_dz_1 # (hidden_size)
+
+        self.W_1 -= learning_rate * dL_dW_1
+        self.W_2 -= learning_rate * dL_dW_2
+
+        self.b_1 -= learning_rate * dL_db_1 # (hidden_size)
+        self.b_2 -= learning_rate * dL_db_2
+
+    raise NotImplementedError
+
+
+
     def train_epoch(self, X, y, learning_rate=0.001):
-        raise NotImplementedError
+        i = 0
+        for x_i, y_i in zip(X, y):
+            self.update_weight(x_i, y_i, learning_rate, i)
+            i += 1
 
 
 def plot(epochs, valid_accs, test_accs):
