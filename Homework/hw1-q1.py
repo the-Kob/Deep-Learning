@@ -20,6 +20,53 @@ def configure_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
 
+def ReLU(values):
+    return np.maximum(0, values)
+
+def Softmax(z):
+    """
+    z - (number of classes x number of examples)
+    """
+    z -= np.max(z) # avoids overflow
+    Z = (np.exp(z)).sum(axis=0) # (1 x n_examples)
+    output_probabilities = np.exp(z) / Z # (n_classes x n_examples)
+    return output_probabilities
+
+
+def ReLU_derivative(x): 
+    x[x <= 0] = 0
+    x[x > 0] = 1
+    return x
+
+def linear_forward(W, h, b):
+    """
+    Implements the linear pre-activation of a layer
+    W - weights matrix - (size of current layer x size of previous layer)
+    h - results from previous layer (or input data) - (number of examples x size of previous layer)
+    b - bias vector - (size of the current layer)
+    """
+    z = np.dot(W, h) + b
+    return z
+
+def linear_backward(dL_dz, W, previous_h):
+
+    m = previous_h.shape[0]
+    dL_dw = 1/m * np.dot(dL_dz, previous_h.T)
+    dL_db = 1/m * np.sum(dL_dz, axis = 1, keepdims = True)
+    dL_dprevious_h = np.dot(W.T, dL_dz)
+
+    return dL_dw, dL_dprevious_h, dL_db
+
+def cross_entropy_cost(y_probabilities, y):
+    """
+    y_probabilities - probability vector from our prediction (n_examples)
+    y - gold label, one-hot vector (n_examples)
+    """
+    m = y.shape[0] # n_examples
+    losses = np.multiply(np.log(y_probabilities), y) + np.multiply(np.log(1-y_probabilities), 1-y)
+    cost = - 1/m * np.sum(losses)
+    return cost
+
 
 class LinearModel(object):
     def __init__(self, n_classes, n_features, **kwargs):
@@ -110,8 +157,8 @@ class MLP(object):
         self.W_2 = np.reshape(self.W_2, (n_classes, hidden_size)) # (n_classes x hidden_size)
 
         # Initialize bias to zeroes vector
-        self.b_1 = np.zeroes(hidden_size, 1) # (hidden_size)
-        self.b_2 = np.zeroes(n_classes, 1) # (n_classes)
+        self.b_1 = np.zeros((hidden_size, 1)) # (hidden_size)
+        self.b_2 = np.zeros((n_classes, 1)) # (n_classes)
 
     def predict(self, X):
         """
@@ -121,16 +168,14 @@ class MLP(object):
         # no need to save the values of hidden nodes, whereas this is required
         # at training time.
 
-        self.z_1 = np.matmul(self.W_1, X.T) + self.b_1 # (hidden_size x n_examples)
-        self.h_1 = np.maximum(0, self.z_1) # ReLU activation, (hidden_size x n_examples)
+        self.z_1 = linear_forward(self.W_1, X.T, self.b_1) # (hidden_size x n_examples)
+        self.h_1 = ReLU(self.z_1) # ReLU activation, (hidden_size x n_examples)
 
-        self.h_2 = np.matmul(self.W_2, self.h_1) + self.b_2 # (n_classes x n_examples)
+        self.z_2 = linear_forward(self.W_2, self.h_1, self.b_2) # (n_classes x n_examples)
 
         # Softmax application
-        Z_each_example = (np.exp(self.h_2)).sum(axis=0) # (1 x n_examples)
-
-        self.z_2 = np.exp(self.h_2) / Z_each_example # (n_classes x n_examples) - verified
-        y_hat = self.z_2.argmax(axis=0) # Should be (n_examples) so we can evaluate - verified
+        self.y_probabilities = Softmax(self.z_2) # Probabilities vector (n_classes x n_examples)
+        y_hat = self.output.argmax(axis=0) # Should be (n_examples) so we can evaluate - verified
 
         return y_hat
 
@@ -145,38 +190,44 @@ class MLP(object):
         n_possible = y.shape[0]
         return n_correct / n_possible
 
-    def update_weight(self, x_i, y_i, learning_rate, exampleIndex):
+    def update_weight(self, X, y, learning_rate):
         """
         x_i (n_features): a single training example
         y_i: the gold label for that example
         learning_rate (float): keep it at the default value for your plots
         """
-        # Cross entropy loss is (y-y_hat) * x
 
-        dL_dz_2 = -x_i # (n_features)
-        dL_dW_2 = np.dot(dL_dz_2, self.h_2[:, exampleIndex])
-        dL_db_2 = dL_dz_2 # (hidden_size)
+        # Initializing the backpropagation
+        dL_dz_2 = Softmax(self.z_2) - y # Sites 89/90
+        dL_dW_2, dL_dh_1, dL_db_2 = linear_backward(dL_dz_2, self.W_2, self.h_1)
 
-        dL_dh_1 = (self.W_2.T * dL_dz_2)[:, exampleIndex] # (hidden_size)
-        dL_dz_1 = dL_dh_1 * 1 # The derivative of ReLU is one, (hidden_size)
-        dL_dW_1 = np.dot(dL_dz_1, self.h_2[:, exampleIndex])
-        dL_db_1 = dL_dz_1 # (hidden_size)
+        dL_dz_1 = np.dot(ReLU_derivative(self.z_1), dL_dh_1.T)
+        dL_dW_1, dL_dx, dL_db_1 = linear_backward(dL_dz_1, self.W_1, X.T)
+        
+        ##
+        # Site 89 and 90
+        #Z_i = (np.exp(self.z_2[:, exampleIndex])).sum(axis=0) # (1 x n_examples)
+        #dL_dz_2 = np.exp(self.z_2[:, exampleIndex]) / Z_i - y_i # (n_classes x 1)
+        #dL_dW_2 = dL_dz_2 * self.h_1[:, exampleIndex].T # (n_classes x hidden_size), makes sense
+        #dL_db_2 = dL_dz_2
 
-        self.W_1 -= learning_rate * dL_dW_1
-        self.W_2 -= learning_rate * dL_dW_2
+        #dL_dz_1 = dL_dW_2 * ReLU_derivative(self.z_1[:,exampleIndex]) * dL_dz_2.T # (n_classes x n_classes)
+        #dL_dW_1 = dL_dz_1 * x_i
+        #dL_db_1 = dL_dz_1
+
+        self.W_1 -= learning_rate * dL_dW_1 # (hidden_size x n_features)
+        self.W_2 -= learning_rate * dL_dW_2 # (n_classes x hidden_size)
 
         self.b_1 -= learning_rate * dL_db_1 # (hidden_size)
-        self.b_2 -= learning_rate * dL_db_2
-
-    raise NotImplementedError
-
+        self.b_2 -= learning_rate * dL_db_2 # (n_classes)
 
 
     def train_epoch(self, X, y, learning_rate=0.001):
-        i = 0
-        for x_i, y_i in zip(X, y):
-            self.update_weight(x_i, y_i, learning_rate, i)
-            i += 1
+        self.z_1 = linear_forward(self.W_1, X.T, self.b_1) # (hidden_size x n_examples)
+        self.h_1 = ReLU(self.z_1) # ReLU activation, (hidden_size x n_examples)
+        self.z_2 = linear_forward(self.W_2, self.h_1, self.b_2) # (n_classes x n_examples)
+        self.update_weight(X, y, learning_rate)
+        
 
 
 def plot(epochs, valid_accs, test_accs):
@@ -225,7 +276,7 @@ def main():
     elif opt.model == 'logistic_regression':
         model = LogisticRegression(n_classes, n_feats)
     else:
-        model = MLP(n_classes, n_feats, opt.hidden_size, opt.layers)
+        model = MLP(n_classes, n_feats, opt.hidden_size)
     epochs = np.arange(1, opt.epochs + 1)
     valid_accs = []
     test_accs = []
