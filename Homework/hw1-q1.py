@@ -67,7 +67,7 @@ def backward(x, y, z, hiddens, W, B):
 
     for i in range(nLayers -1, -1, -1):
         h = x if i == 0 else hiddens[i -1]
-        gradW.append(gradZ[:, None].dot(h[:, None].T))
+        gradW.append(np.dot(gradZ[:, None], h[:, None].T))
         gradB.append(gradZ)
 
         gradH = W[i].T.dot(gradZ)
@@ -84,7 +84,7 @@ def cross_entropy_loss(y_probabilities, y):
     y_probabilities - probability vector from our prediction (n_examples)
     y - gold label, one-hot vector (n_examples)
     """
-    loss = -y.dot(np.log(y_probabilities))
+    loss = np.dot(-y, np.log(y_probabilities))
     return loss
 
 def predict_label(z):
@@ -172,10 +172,10 @@ class MLP(object):
         mu, sigma = 0.1, 0.1
 
         W1 = np.random.normal(mu, sigma, hidden_size * n_features)
-        W1 = np.reshape(self.W_1, (hidden_size, n_features)) # (hidden_size x n_features)
+        W1 = np.reshape(W1, (hidden_size, n_features)) # (hidden_size x n_features)
 
         W2 = np.random.normal(mu, sigma, n_classes * hidden_size)
-        W2 = np.reshape(self.W_2, (n_classes, hidden_size)) # (n_classes x hidden_size)
+        W2 = np.reshape(W2, (n_classes, hidden_size)) # (n_classes x hidden_size)
         
         # Initialize bias to zeroes vector
         b1 = np.zeros((hidden_size, 1)) # (hidden_size)
