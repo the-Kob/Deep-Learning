@@ -33,10 +33,10 @@ def softmax(z):
     return output_probabilities
 
 
-def ReLU_derivative(x): 
-    x[x <= 0] = 0
-    x[x > 0] = 1
-    return x
+def reluDerivative(z): 
+    z[z <= 0] = 0
+    z[z > 0] = 1
+    return z
 
 def forward(x, w, b):
     """
@@ -70,9 +70,9 @@ def backward(x, y, z, hiddens, W, B):
         gradW.append(np.dot(gradZ[:, None], h[:, None].T))
         gradB.append(gradZ)
 
-        gradH = W[i].T.dot(gradZ)
+        gradH = np.dot(W[i].T, gradZ)
 
-        gradZ = gradH * (1 - h ** 2)
+        gradZ = gradH * reluDerivative(gradZ)
 
     gradW.reverse()
     gradB.reverse()
