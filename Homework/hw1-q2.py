@@ -239,6 +239,8 @@ def main():
     plot(epochs, train_mean_losses, ylabel='Loss', name='{}-training-loss-{}'.format(opt.model, config))
     plot(epochs, valid_accs, ylabel='Accuracy', name='{}-validation-accuracy-{}'.format(opt.model, config))
 
+    #plot(epochs, train_mean_losses, ylabel = "Loss")
+    #plot(epochs, valid_accs, ylabel="Validation Accuracy")
 
 if __name__ == '__main__':
     main()

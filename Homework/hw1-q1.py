@@ -47,13 +47,20 @@ def forward(x, w, b):
     """
     nLayers = len(w)
     hiddens = []
+    x = x.reshape(-1, 1)
 
     for i in range(nLayers):
         h = x if i == 0 else hiddens[i -1]
+        print(h.shape)
+        print(w[i].shape)
+        print(b[i].shape)
         z = w[i].dot(h) + b[i]
+        #import ipdb; ipdb.set_trace()
         if(i < nLayers - 1): 
             hiddens.append(relu(z)) # activate the layers except the output layers
-    
+    print(z.shape)
+    print(x.shape)
+
     return z, hiddens
 
 def backward(x, y, z, hiddens, W, B):
@@ -61,12 +68,16 @@ def backward(x, y, z, hiddens, W, B):
     
     probs = softmax(z)
     gradZ = probs - y
-
+    #print(probs.shape)
+    #print(y.shape)
+    #print(gradZ.shape)
+    
     gradW = []
     gradB = []
 
-    for i in range(nLayers -1, -1):
+    for i in range(nLayers -1):
         h = x if i == 0 else hiddens[i -1]
+        print(i)
         gradW.append(np.dot(gradZ[:, None], h[:, None].T))
         gradB.append(gradZ)
 
@@ -84,12 +95,22 @@ def cross_entropy_loss(y_probabilities, y):
     y_probabilities - probability vector from our prediction (n_examples)
     y - gold label, one-hot vector (n_examples)
     """
-    loss = np.dot(-y, np.log(y_probabilities))
+    print(y)
+    print(y_probabilities)
+    #import ipdb; ipdb.set_trace()
+
+    one_hot_index = y[0]
+    y = np.zeros((10,1))
+    y[one_hot_index] = 1
+
+    #import ipdb; ipdb.set_trace()
+
+    loss = np.dot(-y.T, np.log(y_probabilities))
     return loss
 
 def predict_label(z):
     y_hat = np.zeros_like(z)
-    y_hat[np.argmax(z)] = 1
+    y_hat[np.argmax(z, axis=0)] = 1
     return y_hat
 
 class LinearModel(object):
@@ -210,12 +231,15 @@ class MLP(object):
         """
         # Identical to LinearModel.evaluate()
         predicted_labels = self.predict(X)
-        acc = np.mean(np.argmax(predicted_labels, axis = 1) == np.argmax(y, axis = 1))
+        acc = np.mean(np.argmax(predicted_labels, axis = 0) == np.argmax(y, axis = 0))
 
         return acc
 
     def update_weights(self, gradW, gradB, learning_rate):
         nLayers = len(self.weights)
+        print(nLayers)
+        print(len(gradB))
+        print(len(gradW))
 
         for i in range(nLayers):
             self.weights[i] -= learning_rate * gradW[i]
@@ -225,13 +249,26 @@ class MLP(object):
     def train_epoch(self, X, y, learning_rate=0.001):
         totalLoss = 0
 
-        for x, yy in zip(X, y):
-            output, hiddens = forward(x, self.weights, self.biases)
+        print("X shape")
+        print(X.shape)
 
+        y = y.reshape(-1, 1)
+        print("y shape")
+        print(y.shape)
+
+
+        for x, yy in zip(X, y):
+            x = x.reshape(-1, 1)
+            yy = yy.reshape(-1, 1)
+
+            output, hiddens = forward(x, self.weights, self.biases)
+            print("ys")
+            print(x.shape)
+            print(yy.shape) # SOMETIMES YY IS ()
             loss = cross_entropy_loss(softmax(output), yy)
             totalLoss += loss
             gradWeights, gradBiases = backward(x, yy, output, hiddens, self.weights, self.biases)
-            self.update_weights(self, gradWeights, gradBiases, learning_rate)
+            self.update_weights(gradWeights, gradBiases, learning_rate)
         
         return loss
 
