@@ -20,10 +20,10 @@ def configure_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
 
-def ReLU(values):
-    return np.maximum(0, values)
+def relu(z):
+    return np.maximum(0, z)
 
-def Softmax(z):
+def softmax(z):
     """
     z - (number of classes x number of examples)
     """
@@ -38,35 +38,59 @@ def ReLU_derivative(x):
     x[x > 0] = 1
     return x
 
-def linear_forward(W, h, b):
+def forward(x, w, b):
     """
     Implements the linear pre-activation of a layer
     W - weights matrix - (size of current layer x size of previous layer)
     h - results from previous layer (or input data) - (number of examples x size of previous layer)
     b - bias vector - (size of the current layer)
     """
-    z = np.dot(W, h) + b
-    return z
+    nLayers = len(w)
+    hiddens = []
 
-def linear_backward(dL_dz, W, previous_h):
+    for i in range(nLayers):
+        h = x if i == 0 else hiddens[i -1]
+        z = w[i].dot(h) + b[i]
+        if(i < nLayers - 1): 
+            hiddens.append(relu(z)) # activate the layers except the output layers
+    
+    return z, hiddens
 
-    m = previous_h.shape[0]
-    dL_dw = 1/m * np.dot(dL_dz, previous_h.T)
-    dL_db = 1/m * np.sum(dL_dz, axis = 1, keepdims = True)
-    dL_dprevious_h = np.dot(W.T, dL_dz)
+def backward(x, y, z, hiddens, W, B):
+    nLayers = len(W)
+    
+    probs = softmax(z)
+    gradZ = probs - y
 
-    return dL_dw, dL_dprevious_h, dL_db
+    gradW = []
+    gradB = []
 
-def cross_entropy_cost(y_probabilities, y):
+    for i in range(nLayers -1, -1, -1):
+        h = x if i == 0 else hiddens[i -1]
+        gradW.append(gradZ[:, None].dot(h[:, None].T))
+        gradB.append(gradZ)
+
+        gradH = W[i].T.dot(gradZ)
+
+        gradZ = gradH * (1 - h ** 2)
+
+    gradW.reverse()
+    gradB.reverse()
+
+    return gradW, gradB
+
+def cross_entropy_loss(y_probabilities, y):
     """
     y_probabilities - probability vector from our prediction (n_examples)
     y - gold label, one-hot vector (n_examples)
     """
-    m = y.shape[0] # n_examples
-    losses = np.multiply(np.log(y_probabilities), y) + np.multiply(np.log(1-y_probabilities), 1-y)
-    cost = - 1/m * np.sum(losses)
-    return cost
+    loss = -y.dot(np.log(y_probabilities))
+    return loss
 
+def predict_label(z):
+    y_hat = np.zeros_like(z)
+    y_hat[np.argmax(z)] = 1
+    return y_hat
 
 class LinearModel(object):
     def __init__(self, n_classes, n_features, **kwargs):
@@ -130,6 +154,7 @@ class LogisticRegression(LinearModel):
         y_one_hot[y_i] = 1
 
         # Conditional probability of y, according to softmax (n_classes x 1).
+        # y_probabilities = Softmax(scores) not working properly
         z = np.sum(np.exp(scores))
         y_probabilities = np.exp(scores) / z
 
@@ -139,26 +164,25 @@ class LogisticRegression(LinearModel):
 
 
 class MLP(object):
-    # Q3.2b. This MLP skeleton code allows the MLP to be used in place of the
+    # Q2.2b. This MLP skeleton code allows the MLP to be used in place of the
     # linear models with no changes to the training loop or evaluation code
     # in main().
     def __init__(self, n_classes, n_features, hidden_size):
-        # Initialize an MLP with a single hidden layer.
-
-        self.n_classes = n_classes
-        self.n_features = n_features
-
         # Initialize weight matrices with normal distribution N(mu, sigma^2)
         mu, sigma = 0.1, 0.1
-        self.W_1 = np.random.normal(mu, sigma, hidden_size * n_features)
-        self.W_1 = np.reshape(self.W_1, (hidden_size, n_features)) # (hidden_size x n_features)
 
-        self.W_2 = np.random.normal(mu, sigma, n_classes * hidden_size)
-        self.W_2 = np.reshape(self.W_2, (n_classes, hidden_size)) # (n_classes x hidden_size)
+        W1 = np.random.normal(mu, sigma, hidden_size * n_features)
+        W1 = np.reshape(self.W_1, (hidden_size, n_features)) # (hidden_size x n_features)
 
+        W2 = np.random.normal(mu, sigma, n_classes * hidden_size)
+        W2 = np.reshape(self.W_2, (n_classes, hidden_size)) # (n_classes x hidden_size)
+        
         # Initialize bias to zeroes vector
-        self.b_1 = np.zeros((hidden_size, 1)) # (hidden_size)
-        self.b_2 = np.zeros((n_classes, 1)) # (n_classes)
+        b1 = np.zeros((hidden_size, 1)) # (hidden_size)
+        b2 = np.zeros((n_classes, 1)) # (n_classes)
+
+        self.weights = [W1, W2]
+        self.biases = [b1, b2]
 
     def predict(self, X):
         """
@@ -168,16 +192,16 @@ class MLP(object):
         # no need to save the values of hidden nodes, whereas this is required
         # at training time.
 
-        self.z_1 = linear_forward(self.W_1, X.T, self.b_1) # (hidden_size x n_examples)
-        self.h_1 = ReLU(self.z_1) # ReLU activation, (hidden_size x n_examples)
+        predicted_labels = []
 
-        self.z_2 = linear_forward(self.W_2, self.h_1, self.b_2) # (n_classes x n_examples)
+        for x in X:
+            output, _ = forward(x, self.weights, self.biases)
+            y_hat = predict_label(output)
+            predicted_labels.append(y_hat)
 
-        # Softmax application
-        self.y_probabilities = Softmax(self.z_2) # Probabilities vector (n_classes x n_examples)
-        y_hat = self.output.argmax(axis=0) # Should be (n_examples) so we can evaluate - verified
+        predicted_labels = np.array(predicted_labels)
 
-        return y_hat
+        return predicted_labels
 
     def evaluate(self, X, y):
         """
@@ -185,49 +209,31 @@ class MLP(object):
         y (n_examples): gold labels
         """
         # Identical to LinearModel.evaluate()
-        y_hat = self.predict(X)
-        n_correct = (y == y_hat).sum()
-        n_possible = y.shape[0]
-        return n_correct / n_possible
+        predicted_labels = self.predict(X)
+        acc = np.mean(np.argmax(predicted_labels, axis = 1) == np.argmax(y, axis = 1))
 
-    def update_weight(self, X, y, learning_rate):
-        """
-        x_i (n_features): a single training example
-        y_i: the gold label for that example
-        learning_rate (float): keep it at the default value for your plots
-        """
+        return acc
 
-        # Initializing the backpropagation
-        dL_dz_2 = Softmax(self.z_2) - y # Sites 89/90
-        dL_dW_2, dL_dh_1, dL_db_2 = linear_backward(dL_dz_2, self.W_2, self.h_1)
+    def update_weights(self, gradW, gradB, learning_rate):
+        nLayers = len(self.weights)
 
-        dL_dz_1 = np.dot(ReLU_derivative(self.z_1), dL_dh_1.T)
-        dL_dW_1, dL_dx, dL_db_1 = linear_backward(dL_dz_1, self.W_1, X.T)
-        
-        ##
-        # Site 89 and 90
-        #Z_i = (np.exp(self.z_2[:, exampleIndex])).sum(axis=0) # (1 x n_examples)
-        #dL_dz_2 = np.exp(self.z_2[:, exampleIndex]) / Z_i - y_i # (n_classes x 1)
-        #dL_dW_2 = dL_dz_2 * self.h_1[:, exampleIndex].T # (n_classes x hidden_size), makes sense
-        #dL_db_2 = dL_dz_2
-
-        #dL_dz_1 = dL_dW_2 * ReLU_derivative(self.z_1[:,exampleIndex]) * dL_dz_2.T # (n_classes x n_classes)
-        #dL_dW_1 = dL_dz_1 * x_i
-        #dL_db_1 = dL_dz_1
-
-        self.W_1 -= learning_rate * dL_dW_1 # (hidden_size x n_features)
-        self.W_2 -= learning_rate * dL_dW_2 # (n_classes x hidden_size)
-
-        self.b_1 -= learning_rate * dL_db_1 # (hidden_size)
-        self.b_2 -= learning_rate * dL_db_2 # (n_classes)
+        for i in range(nLayers):
+            self.weights[i] -= learning_rate * gradW[i]
+            self.biases[i] -= learning_rate * gradB[i]
 
 
     def train_epoch(self, X, y, learning_rate=0.001):
-        self.z_1 = linear_forward(self.W_1, X.T, self.b_1) # (hidden_size x n_examples)
-        self.h_1 = ReLU(self.z_1) # ReLU activation, (hidden_size x n_examples)
-        self.z_2 = linear_forward(self.W_2, self.h_1, self.b_2) # (n_classes x n_examples)
-        self.update_weight(X, y, learning_rate)
+        totalLoss = 0
+
+        for x, yy in zip(X, y):
+            output, hiddens = forward(x, self.weights, self.biases)
+
+            loss = cross_entropy_loss(softmax(output), yy)
+            totalLoss += loss
+            gradWeights, gradBiases = backward(x, yy, output, hiddens, self.weights, self.biases)
+            self.update_weights(self, gradWeights, gradBiases, learning_rate)
         
+        return loss
 
 
 def plot(epochs, valid_accs, test_accs):
