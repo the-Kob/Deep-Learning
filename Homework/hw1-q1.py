@@ -65,7 +65,7 @@ def backward(x, y, z, hiddens, W, B):
     gradW = []
     gradB = []
 
-    for i in range(nLayers -1, -1, -1):
+    for i in range(nLayers -1, -1):
         h = x if i == 0 else hiddens[i -1]
         gradW.append(np.dot(gradZ[:, None], h[:, None].T))
         gradB.append(gradZ)
