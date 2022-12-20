@@ -71,8 +71,33 @@ class FeedforwardNetwork(nn.Module):
         attributes that each FeedforwardNetwork instance has. Note that nn
         includes modules for several activation functions and dropout as well.
         """
-        super().__init__()
-        # Implement me!
+        super().__init__() # Access base class (in nn.Module)
+
+        # Check what activation our model has and assign corresponding class
+        if(activation_type == "tanh"):
+            self.activation = nn.Tanh()
+        else:
+            self.activation = nn.ReLU()
+
+        #self.sequence = nn.Sequential(nn.Linear(n_features, hidden_size),
+        #                                nn.Dropout(dropout),
+        #                                self.activation,
+        #                                nn.Linear(hidden_size, n_classes))
+
+        # Initial sequence, corresponds to input -> first hidden layer
+        self.sequence = nn.Sequential(nn.Linear(n_features, hidden_size),
+                                        nn.Dropout(dropout),
+                                        self.activation)
+
+        # Each hidden layer (after the first) requires these operations added to the sequence
+        for l in range(layers - 1):
+            self.sequence.append(nn.Linear(hidden_size, hidden_size))
+            self.sequence.append(nn.Dropout(dropout))
+            self.sequence.append(self.activation)
+
+        # Final sequence, corresponds to last hidden layer -> output
+        self.sequence.append(nn.Linear(hidden_size, n_classes))
+
 
     def forward(self, x, **kwargs):
         """
@@ -82,7 +107,9 @@ class FeedforwardNetwork(nn.Module):
         the output logits from x. This will include using various hidden
         layers, pointwise nonlinear functions, and dropout.
         """
-        raise NotImplementedError
+        output = self.sequence(x)
+
+        return output
 
 
 def train_batch(X, y, model, optimizer, criterion, **kwargs):
@@ -148,7 +175,7 @@ def plot(epochs, plottable, ylabel='', name=''):
     plt.xlabel('Epoch')
     plt.ylabel(ylabel)
     plt.plot(epochs, plottable)
-    plt.savefig('%s.pdf' % (name), bbox_inches='tight')
+    plt.savefig('%s.png' % (name), bbox_inches='tight') # changed from .pdf to .png
 
 
 def main():
@@ -192,7 +219,7 @@ def main():
         model = FeedforwardNetwork(
             n_classes,
             n_feats,
-            opt.hidden_size,
+            opt.hidden_sizes,
             opt.layers,
             opt.activation,
             opt.dropout
@@ -234,13 +261,10 @@ def main():
     if opt.model == "logistic_regression":
         config = "{}-{}".format(opt.learning_rate, opt.optimizer)
     else:
-        config = "{}-{}-{}-{}-{}-{}-{}".format(opt.learning_rate, opt.hidden_size, opt.layers, opt.dropout, opt.activation, opt.optimizer, opt.batch_size)
+        config = "{}-{}-{}-{}-{}-{}-{}".format(opt.learning_rate, opt.hidden_sizes, opt.layers, opt.dropout, opt.activation, opt.optimizer, opt.batch_size)
 
     plot(epochs, train_mean_losses, ylabel='Loss', name='{}-training-loss-{}'.format(opt.model, config))
     plot(epochs, valid_accs, ylabel='Accuracy', name='{}-validation-accuracy-{}'.format(opt.model, config))
-
-    #plot(epochs, train_mean_losses, ylabel = "Loss")
-    #plot(epochs, valid_accs, ylabel="Validation Accuracy")
 
 if __name__ == '__main__':
     main()
