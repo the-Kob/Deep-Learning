@@ -129,13 +129,21 @@ class MLP(object):
         return acc
 
     def train_epoch(self, X, y, learning_rate=0.001):
+        totalLoss = 0
+
         for x_i, y_i in zip(X, y):
-            self.update_weights(x_i, y_i, learning_rate)
+            totalLoss += self.update_weights(x_i, y_i, learning_rate)
+
+        print("Total loss: %f" % totalLoss)
     
     def update_weights(self, x, y, eta):
         nLayers = len(self.weights)
 
         z, hiddens = self.forward(x)
+
+        # Compute loss
+        probs = np.exp(z) / np.sum((np.exp(z))) # softmax
+        loss = np.dot(-y, np.log(probs))
 
         gradWeights, gradBiases = self.backward(x, y, z, hiddens)
 
@@ -143,6 +151,8 @@ class MLP(object):
         for i in range(nLayers):
             self.weights[i] -= eta * gradWeights[i]
             self.biases[i] -= eta * gradBiases[i]
+
+        return loss
 
     def relu(z):
         return np.maximum(0, z)
@@ -173,7 +183,7 @@ class MLP(object):
         nLayers = len(self.weights)
         z = output
 
-        ## Cross-entropy loss function
+        # Cross-entropy loss function
         z -= np.max(z) # anti-overflow
         probs = np.exp(z) / np.sum((np.exp(z)))
         gradZ = probs - y
@@ -181,8 +191,8 @@ class MLP(object):
         gradWeights = []
         gradBiases = []
 
-        ## for(i = nLayers - 1, i > -1, i--)
-        ## Basically a backwards "for" to access the hidden layers in the correct order
+        # for(i = nLayers - 1, i > -1, i--)
+        # Basically a backwards "for" to access the hidden layers in the correct order
         for i in range(nLayers -1, -1, -1):
             h = x if i == 0 else hiddens[i -1]
 
