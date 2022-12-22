@@ -106,6 +106,7 @@ class MLP(object):
         b2 = np.zeros(n_classes) # (n_classes)
 
         self.weights = [W1, W2]
+        self.nLayers = len(self.weights)
         self.biases = [b1, b2]
 
     def predict(self, X):
@@ -117,8 +118,8 @@ class MLP(object):
 
         for x in X:
             output, _ = self.forward(x)
-            y_hat = self.predictLabel(output)
-            predictedLabels.append(y_hat)
+            yHat = self.predictLabel(output)
+            predictedLabels.append(yHat)
 
         return predictedLabels
 
@@ -137,8 +138,6 @@ class MLP(object):
         print("Total loss: %f" % totalLoss)
     
     def update_weights(self, x, y, eta):
-        nLayers = len(self.weights)
-
         z, hiddens = self.forward(x)
 
         # Compute loss
@@ -148,30 +147,21 @@ class MLP(object):
         gradWeights, gradBiases = self.backward(x, y, z, hiddens)
 
         # Update the weights and the biases
-        for i in range(nLayers):
+        for i in range(self.nLayers):
             self.weights[i] -= eta * gradWeights[i]
             self.biases[i] -= eta * gradBiases[i]
 
         return loss
 
-    def relu(z):
-        return np.maximum(0, z)
-
-    def softmax(z):
-        probs = np.exp(z) / np.sum((np.exp(z)))
-        
-        return probs
-
     def forward(self, x):
-        nLayers = len(self.weights)
         hiddenLayers = []
 
-        for i in range(nLayers):
+        for i in range(self.nLayers):
             h = x if i == 0 else hiddenLayers[i - 1]
             z = np.dot(self.weights[i], h) + self.biases[i]
 
             # If it isn't the last layer -> activation
-            if(i < nLayers - 1):
+            if(i < self.nLayers - 1):
                 z = np.maximum(z, 0) # relu activation
                 hiddenLayers.append(z)
 
@@ -180,7 +170,6 @@ class MLP(object):
         return output, hiddenLayers
 
     def backward(self, x, y, output, hiddens):
-        nLayers = len(self.weights)
         z = output
 
         # Cross-entropy loss function
@@ -193,13 +182,12 @@ class MLP(object):
 
         # for(i = nLayers - 1, i > -1, i--)
         # Basically a backwards "for" to access the hidden layers in the correct order
-        for i in range(nLayers -1, -1, -1):
+        for i in range(self.nLayers -1, -1, -1):
             h = x if i == 0 else hiddens[i -1]
 
             # Gradient of the current layer
             gradWeights.append(np.dot((gradZ[:, None]), h[:, None].T))
             gradBiases.append(gradZ)
-            print(len(gradWeights))
 
             # Gradient of the previous layer
             gradH = np.dot(self.weights[i].T, gradZ)
@@ -220,11 +208,6 @@ class MLP(object):
         y_hat[np.argmax(output)] = 1
 
         return y_hat
-
-    def reluDerivative(z): 
-        z[z <= 0] = 0
-        z[z > 0] = 1
-        return z
 
 def plot(epochs, valid_accs, test_accs):
     plt.xlabel('Epoch')
