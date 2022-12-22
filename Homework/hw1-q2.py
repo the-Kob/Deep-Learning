@@ -79,11 +79,6 @@ class FeedforwardNetwork(nn.Module):
         else:
             self.activation = nn.ReLU()
 
-        #self.sequence = nn.Sequential(nn.Linear(n_features, hidden_size),
-        #                                nn.Dropout(dropout),
-        #                                self.activation,
-        #                                nn.Linear(hidden_size, n_classes))
-
         # Initial sequence, corresponds to input -> first hidden layer
         self.sequence = nn.Sequential(nn.Linear(n_features, hidden_size),
                                         nn.Dropout(dropout),
