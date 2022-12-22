@@ -99,7 +99,7 @@ class MLP(object):
 
         # Initialize weight matrices with normal distribution N(mu, sigma^2)
         W1 = np.random.normal(mu, sigma, size = (hidden_size, n_features))
-        W2 = np.random.normal(mu, sigma, n_classes * hidden_size)
+        W2 = np.random.normal(mu, sigma, size = (n_classes, hidden_size))
         
         # Initialize bias to zeroes vector
         b1 = np.zeros(hidden_size) # (hidden_size)
@@ -162,7 +162,9 @@ class MLP(object):
 
             # If it isn't the last layer -> activation
             if(i < nLayers - 1):
-                hiddenLayers.append(self.relu(z))
+                z = np.maximum(z, 0) # relu activation
+                hiddenLayers.append(z)
+
         output = z
 
         return output, hiddenLayers
@@ -172,7 +174,7 @@ class MLP(object):
         z = output
 
         ## Cross-entropy loss function
-        probs = self.softmax(z)
+        probs = np.exp(z) / np.sum((np.exp(z)))
         gradZ = probs - y
 
         gradWeights = []
@@ -180,12 +182,13 @@ class MLP(object):
 
         ## for(i = nLayers - 1, i > -1, i--)
         ## Basically a backwards "for" to access the hidden layers in the correct order
-        for i in range(nLayers -1, -1):
+        for i in range(nLayers -1, -1, -1):
             h = x if i == 0 else hiddens[i -1]
 
             # Gradient of the current layer
             gradWeights.append(np.dot((gradZ.shape[0], 1), np.matrix.getT(h)))
             gradBiases.append(gradZ)
+            print(len(gradWeights))
 
             # Gradient of the previous layer
             gradH = np.dot(np.matrix.getT(self.weights[i]), np.reshape(gradZ, (gradZ.shape[0], 1)))
