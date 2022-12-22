@@ -193,8 +193,12 @@ class MLP(object):
             # Gradient of the previous layer
             gradH = np.dot(self.weights[i].T, gradZ)
 
-            gradZ = gradH * np.reshape(self.reluDerivative(h), (self.reluDerivative(h).shape[0], 1))
+            # Relu derivative
+            h[h <= 0] = 0
+            h[h > 0] = 1
 
+            gradZ = gradH * h
+            
         gradWeights.reverse()
         gradBiases.reverse()
 
