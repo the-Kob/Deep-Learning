@@ -186,12 +186,12 @@ class MLP(object):
             h = x if i == 0 else hiddens[i -1]
 
             # Gradient of the current layer
-            gradWeights.append(np.dot((gradZ.shape[0], 1), np.matrix.getT(h)))
+            gradWeights.append(np.dot((gradZ[:, None]), h[:, None].T))
             gradBiases.append(gradZ)
             print(len(gradWeights))
 
             # Gradient of the previous layer
-            gradH = np.dot(np.matrix.getT(self.weights[i]), np.reshape(gradZ, (gradZ.shape[0], 1)))
+            gradH = np.dot(self.weights[i].T, gradZ)
 
             gradZ = gradH * np.reshape(self.reluDerivative(h), (self.reluDerivative(h).shape[0], 1))
 
