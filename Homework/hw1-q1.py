@@ -177,11 +177,7 @@ class MLP(object):
         # Cross-entropy loss function
         z -= np.max(z) # anti-overflow
         probs = np.exp(z) / np.sum((np.exp(z)))
-<<<<<<< HEAD
         gradZ = probs - self.getOneHot(y)
-=======
-        gradZ = probs - y # TODO transform y into one hot vector
->>>>>>> main
 
         gradWeights = []
         gradBiases = []
