@@ -109,9 +109,6 @@ class MLP(object):
         self.biases = [b1, b2]
 
     def predict(self, X):
-        """
-        X (n_examples x n_features):
-        """
         # Compute the forward pass of the network. At prediction time, there is
         # no need to save the values of hidden nodes, whereas this is required
         # at training time.
@@ -126,10 +123,6 @@ class MLP(object):
         return predictedLabels
 
     def evaluate(self, X, y):
-        """
-        X (n_examples x n_features)
-        y (n_examples): gold labels
-        """
         predictedLabels = self.predict(X)
         acc = np.mean(np.argmax(predictedLabels, axis = 1) == np.argmax(y, axis = 1))
 
@@ -141,14 +134,12 @@ class MLP(object):
     
     def update_weights(self, x, y, eta):
         nLayers = len(self.weights)
-        print(nLayers)
-        print(len(gradB))
-        print(len(gradW))
 
         z, hiddens = self.forward(x)
 
         gradWeights, gradBiases = self.backward(x, y, z, hiddens)
 
+        # Update the weights and the biases
         for i in range(nLayers):
             self.weights[i] -= eta * gradWeights[i]
             self.biases[i] -= eta * gradBiases[i]
@@ -156,7 +147,7 @@ class MLP(object):
     def relu(z):
         return np.maximum(0, z)
 
-    def softmax(self, z):
+    def softmax(z):
         probs = np.exp(z) / np.sum((np.exp(z)))
         
         return probs
