@@ -95,6 +95,8 @@ class MLP(object):
     # linear models with no changes to the training loop or evaluation code
     # in main().
     def __init__(self, n_classes, n_features, hidden_size):
+        self.nClasses = n_classes
+
         mu, sigma = 0.1, 0.1
 
         # Initialize weight matrices with normal distribution N(mu, sigma^2)
@@ -175,7 +177,7 @@ class MLP(object):
         # Cross-entropy loss function
         z -= np.max(z) # anti-overflow
         probs = np.exp(z) / np.sum((np.exp(z)))
-        gradZ = probs - y
+        gradZ = probs - self.getOneHot(y)
 
         gradWeights = []
         gradBiases = []
@@ -208,6 +210,15 @@ class MLP(object):
         y_hat[np.argmax(output)] = 1
 
         return y_hat
+    
+    def getOneHot(self, y):
+        oneHot = np.zeros(self.nClasses)
+
+        for i in range(self.nClasses):
+            if i == y:
+                oneHot[i] = 1
+        
+        return oneHot
 
 def plot(epochs, valid_accs, test_accs):
     plt.xlabel('Epoch')
