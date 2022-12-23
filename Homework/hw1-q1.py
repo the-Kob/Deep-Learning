@@ -87,13 +87,12 @@ class LogisticRegression(LinearModel):
 
         # Update weights with stochastic gradient descent
         self.W += learning_rate * (y_one_hot - y_probabilities) * x_i[None, :]
-        
-
 
 class MLP(object):
     # Q2.2b. This MLP skeleton code allows the MLP to be used in place of the
     # linear models with no changes to the training loop or evaluation code
     # in main().
+
     def __init__(self, n_classes, n_features, hidden_size):
         self.nClasses = n_classes
 
@@ -108,23 +107,31 @@ class MLP(object):
         b2 = np.zeros(n_classes) # (n_classes)
 
         self.weights = [W1, W2]
-        self.nLayers = len(self.weights)
         self.biases = [b1, b2]
+
+        self.nClasses= n_classes
 
     def predict(self, X):
         # Compute the forward pass of the network. At prediction time, there is
         # no need to save the values of hidden nodes, whereas this is required
         # at training time.
 
-        predictedLabels = []
+        predictedLabels = np.empty((X.shape[0]))
 
-        for x in X:
-            output, _ = self.forward(x)
-            yHat = self.predictLabel(output)
-            predictedLabels.append(yHat)
+        for x in X.shape[0]:
+            z1 = np.dot(self.weights[0], X[x]) + self.biases[0]
+            h1 = np.maximum(0, z1) # relu activation
+            
+            z2 = np.dot(self.weights[1], h1) + self.biases[1]
+
+            probs = np.empty((10))
+            for i in range(10):
+                probs[i] = np.exp(z2)[i] / sum(np.exp(z2))
+
+            predictedLabels[x] = np.argmax(probs)
 
         return predictedLabels
-
+    
     def evaluate(self, X, y):
         predictedLabels = self.predict(X)
         acc = np.mean(np.argmax(predictedLabels, axis = 1) == np.argmax(y, axis = 1))
@@ -132,90 +139,44 @@ class MLP(object):
         return acc
 
     def train_epoch(self, X, y, learning_rate=0.001):
-        totalLoss = 0
-
         for x_i, y_i in zip(X, y):
-            totalLoss += self.update_weights(x_i, y_i, learning_rate)
+            self.update_weights(x_i, y_i, learning_rate)
 
-        print("Total loss: %f" % totalLoss)
-    
     def update_weights(self, x, y, eta):
-        z, hiddens = self.forward(x)
+        z1 = np.dot(self.weights[0], x) + self.biases[0]
+        h1 = np.maximum(0, z1) # relu activation
 
-        # Compute loss
-        probs = np.exp(z) / np.sum((np.exp(z))) # softmax
-        loss = np.dot(-y, np.log(probs))
+        z2 = np.dot(self.weights[1], h1) + self.biases[1]
 
-        gradWeights, gradBiases = self.backward(x, y, z, hiddens)
+        probs = np.empty((10))
+        for i in range(10):
+            probs[i] = np.exp(z2)[i] / sum(np.exp(z2))
 
-        # Update the weights and the biases
-        for i in range(self.nLayers):
-            self.weights[i] -= eta * gradWeights[i]
-            self.biases[i] -= eta * gradBiases[i]
+        gradZ2 = probs - self.getOneHot(y)
 
-        return loss
+        gradW2 = np.reshape(gradZ2, (gradZ2.shape[0], 1)) * (np.matrix.getT(h1))
+        gradB2 = gradZ2
 
-    def forward(self, x):
-        hiddenLayers = []
+        gradH1 = np.dot(np.matrix.getT(self.weights[1]), np.reshape(gradZ2, (gradZ2.shape[0], 1)))
 
-        for i in range(self.nLayers):
-            h = x if i == 0 else hiddenLayers[i - 1]
-            z = np.dot(self.weights[i], h) + self.biases[i]
+        # Relu derivative
+        z1ReluD = np.empty((200))
 
-            # If it isn't the last layer -> activation
-            if(i < self.nLayers - 1):
-                z = np.maximum(z, 0) # relu activation
-                hiddenLayers.append(z)
+        for i in range(200):
+            if z1[i] <= 0:
+                z1ReluD[i] = 0
+            else:
+                z1ReluD[i] = 1
 
-        output = z
+        gradZ1 = gradH1 * np.reshape(z1ReluD, (z1ReluD.shape[0], 1))
+        gradW1 = gradZ1 * x
+        gradB1 = np.reshape(gradZ1, (gradZ1.shape[0]))
 
-        return output, hiddenLayers
+        self.weights[0] = self.weights[0] - eta * gradW1     
+        self.biases[0] = self.biases[0] - eta * gradB1    
+        self.weights[1] = self.weights[1] - eta * gradW2    
+        self.biases[1] = self.biases[1] - eta * gradB2     
 
-    def backward(self, x, y, output, hiddens):
-        z = output
-
-        # Cross-entropy loss function
-        z -= np.max(z) # anti-overflow
-        probs = np.exp(z) / np.sum((np.exp(z)))
-        gradZ = probs - self.getOneHot(y)
-
-        gradWeights = []
-        gradBiases = []
-
-        # for(i = nLayers - 1, i > -1, i--)
-        # Basically a backwards "for" to access the hidden layers in the correct order
-        for i in range(self.nLayers -1, -1, -1):
-            h = x if i == 0 else hiddens[i -1]
-
-            # Gradient of the current layer
-            gradWeights.append(np.dot((gradZ[:, None]), h[:, None].T))
-            gradBiases.append(gradZ)
-
-            # Gradient of the previous layer
-            gradH = np.dot(self.weights[i].T, gradZ)
-
-            # Relu derivative
-            reluH = np.empty((200))
-
-            for i in range(200):
-                if h[1] <= 0:
-                    reluH[i] = 0
-                else:
-                    reluH[i] = 1
-
-            gradZ = gradH * np.reshape(reluH, (reluH.shape[0], 1))
-
-        gradWeights.reverse()
-        gradBiases.reverse()
-
-        return gradWeights, gradBiases
-
-    def predictLabel(self, output):
-        y_hat = np.zeros_like(output)
-        y_hat[np.argmax(output)] = 1
-
-        return y_hat
-    
     def getOneHot(self, y):
         oneHot = np.zeros(self.nClasses)
 
