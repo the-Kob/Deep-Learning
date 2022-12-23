@@ -117,7 +117,6 @@ class MLP(object):
         # at training time.
 
         predictedLabels = np.empty((X.shape[0]))
-        print(X.shape[0])
 
         for x in range(X.shape[0]):
             z1 = np.dot(self.weights[0], X[x]) + self.biases[0]
@@ -136,7 +135,7 @@ class MLP(object):
     
     def evaluate(self, X, y):
         predictedLabels = self.predict(X)
-        acc = np.mean(np.argmax(predictedLabels, axis = 1) == np.argmax(y, axis = 1))
+        acc = np.sum((y == predictedLabels)) / y.shape[0]
 
         return acc
 
