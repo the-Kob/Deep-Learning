@@ -54,7 +54,7 @@ class Perceptron(LinearModel):
         y_i (scalar): the gold label for that example
         other arguments are ignored
         """
-        # Q1.1a - I think this is correct
+        # Q1.1a 
 
         # Calculate highest score -> get predicted class
         y_hat = np.dot(self.W, x_i).argmax(axis=0)
