@@ -117,9 +117,9 @@ class MLP(object):
         # at training time.
 
         predictedLabels = np.empty((X.shape[0]))
-        X = np.reshape(X, (X.shape[0], 1))
+        print(X.shape[0])
 
-        for x in X:
+        for x in X.shape[0]:
             z1 = np.dot(self.weights[0], X[x]) + self.biases[0]
             h1 = np.maximum(0, z1) # relu activation
             
