@@ -195,10 +195,15 @@ class MLP(object):
             gradH = np.dot(self.weights[i].T, gradZ)
 
             # Relu derivative
-            h[h <= 0] = 0
-            h[h > 0] = 1
+            reluH = np.empty((200))
 
-            gradZ = gradH * h
+            for i in range(200):
+                if h[1] <= 0:
+                    reluH[i] = 0
+                else:
+                    reluH[i] = 1
+
+            gradZ = gradH * np.reshape(reluH, (reluH.shape[0], 1))
 
         gradWeights.reverse()
         gradBiases.reverse()
