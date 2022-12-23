@@ -126,6 +126,7 @@ class MLP(object):
 
             probs = np.empty((10))
             for i in range(10):
+                z2 -= np.max(z) # anti-overflow
                 probs[i] = np.exp(z2)[i] / sum(np.exp(z2))
 
             predictedLabels[x] = np.argmax(probs)
@@ -150,6 +151,7 @@ class MLP(object):
 
         probs = np.empty((10))
         for i in range(10):
+            z2 -= np.max(z) # anti-overflow
             probs[i] = np.exp(z2)[i] / sum(np.exp(z2))
 
         gradZ2 = probs - self.getOneHot(y)
