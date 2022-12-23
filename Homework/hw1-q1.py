@@ -117,8 +117,9 @@ class MLP(object):
         # at training time.
 
         predictedLabels = np.empty((X.shape[0]))
+        X = np.reshape(X, (X.shape[0], 1))
 
-        for x in X.shape[0]:
+        for x in X:
             z1 = np.dot(self.weights[0], X[x]) + self.biases[0]
             h1 = np.maximum(0, z1) # relu activation
             
@@ -126,7 +127,7 @@ class MLP(object):
 
             probs = np.empty((10))
             for i in range(10):
-                z2 -= np.max(z) # anti-overflow
+                z2 -= np.max(z2) # anti-overflow
                 probs[i] = np.exp(z2)[i] / sum(np.exp(z2))
 
             predictedLabels[x] = np.argmax(probs)
