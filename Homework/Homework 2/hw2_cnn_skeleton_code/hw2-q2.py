@@ -26,8 +26,14 @@ class CNN(nn.Module):
         https://pytorch.org/docs/stable/nn.html
         """
         super(CNN, self).__init__()
-        
-        # Implement me!
+        self.conv1 = nn.Conv2d(1, 10, kernel_size = 5, stride = 1, padding = 2)
+        self.conv1_max = nn.MaxPool2d(2, 2)
+        self.conv2 = nn.Conv2d(10, 16, kernel_size = 3, stride = 1, padding = 0)
+        self.conv2_max = nn.MaxPool2d(2, 2)
+        self.fc1 = nn.Linear(576, 600) # TODO define y as (n_output_channels X output_width X output_height)
+        self.fc1_drop = nn.Dropout(p = dropout_prob)
+        self.fc2 = nn.Linear(600, 120)
+        self.fc3 = nn.Linear(120, 10) # TODO define z as (n_classes)
         
     def forward(self, x):
         """
@@ -45,7 +51,25 @@ class CNN(nn.Module):
         forward pass -- this is enough for it to figure out how to do the
         backward pass.
         """
-        raise NotImplementedError
+        x = x.reshape(x.shape[0], 1, 28, 28)
+
+        x = self.conv1_max(F.relu(self.conv1(x)))
+
+        x = self.conv2_max(F.relu(self.conv2(x)))
+
+        x = x.reshape(x.shape[0], 576)
+
+        x = F.relu(self.fc1(x))
+
+        x = self.fc1_drop(x)
+
+        x = F.relu(self.fc2(x))
+
+        x = self.fc3(x)
+
+        x = F.log_softmax(x, dim = 1)
+        
+        return x
 
 def train_batch(X, y, model, optimizer, criterion, **kwargs):
     """
@@ -65,14 +89,24 @@ def train_batch(X, y, model, optimizer, criterion, **kwargs):
     This function should return the loss (tip: call loss.item()) to get the
     loss as a numerical value that is not part of the computation graph.
     """
-    raise NotImplementedError
+    optimizer.zero_grad()
+
+    outputs = model(X)
+
+    loss = criterion(outputs, y)
+
+    loss.backward()
+
+    optimizer.step()
+
+    return loss.item()
+        
 
 def predict(model, X):
     """X (n_examples x n_features)"""
     scores = model(X)  # (n_examples x n_classes)
     predicted_labels = scores.argmax(dim=-1)  # (n_examples)
     return predicted_labels
-
 
 def evaluate(model, X, y):
     """
@@ -84,6 +118,7 @@ def evaluate(model, X, y):
     n_correct = (y == y_hat).sum().item()
     n_possible = float(y.shape[0])
     model.train()
+
     return n_correct / n_possible
 
 
@@ -93,7 +128,6 @@ def plot(epochs, plottable, ylabel='', name=''):
     plt.ylabel(ylabel)
     plt.plot(epochs, plottable)
     plt.savefig('%s.pdf' % (name), bbox_inches='tight')
-
 
 activation = {}
 def get_activation(name):
@@ -121,7 +155,6 @@ def plot_feature_maps(model, train_dataset):
             ax[i,j].imshow(act[k].detach().cpu().numpy())
             k+=1  
             plt.savefig('activation_maps.pdf') 
-
 
 def main():
     parser = argparse.ArgumentParser()
