@@ -26,9 +26,9 @@ class CNN(nn.Module):
         https://pytorch.org/docs/stable/nn.html
         """
         super(CNN, self).__init__()
-        self.conv1 = nn.Conv2d(1, 10, kernel_size = 5, stride = 1, padding = 2)
+        self.conv1 = nn.Conv2d(1, 8, kernel_size = 5, stride = 1, padding = 2)
         self.conv1_max = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(10, 16, kernel_size = 3, stride = 1, padding = 0)
+        self.conv2 = nn.Conv2d(8, 16, kernel_size = 3, stride = 1, padding = 0)
         self.conv2_max = nn.MaxPool2d(2, 2)
         self.fc1 = nn.Linear(576, 600)
         self.fc1_drop = nn.Dropout(p = dropout_prob)
