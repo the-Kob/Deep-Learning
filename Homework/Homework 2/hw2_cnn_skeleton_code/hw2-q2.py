@@ -63,7 +63,6 @@ class CNN(nn.Module):
         #   x.shape = [8, 10, 14, 14]
 
         x = self.conv2_max(F.relu(self.conv2(x)))
-        
         # Convolution with 3x3 filter with no padding and 16 channels =>
         #   x.shape = [8, 16, 12, 12] since 12 = 14 - 3 + 1
         # Max pooling with stride of 2 =>
@@ -174,10 +173,10 @@ def main():
                         need to change this value for your plots.""")
     parser.add_argument('-batch_size', default=8, type=int,
                         help="Size of training batch.")
-    parser.add_argument('-learning_rate', type=float, default=0.01,
+    parser.add_argument('-learning_rate', type=float, default=0.00001,
                         help="""Learning rate for parameter updates""")
     parser.add_argument('-l2_decay', type=float, default=0)
-    parser.add_argument('-dropout', type=float, default=0.8)
+    parser.add_argument('-dropout', type=float, default=0.3)
     parser.add_argument('-optimizer',
                         choices=['sgd', 'adam'], default='sgd')
     
