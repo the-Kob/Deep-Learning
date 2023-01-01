@@ -137,7 +137,7 @@ def plot(epochs, plottable, ylabel='', name=''):
     plt.xlabel('Epoch')
     plt.ylabel(ylabel)
     plt.plot(epochs, plottable)
-    plt.savefig('%s.pdf' % (name), bbox_inches='tight')
+    plt.savefig('%s.jpg' % (name), bbox_inches='tight')
 
 activation = {}
 def get_activation(name):
