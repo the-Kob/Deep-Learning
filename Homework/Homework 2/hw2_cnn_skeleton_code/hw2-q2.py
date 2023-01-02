@@ -154,7 +154,7 @@ def plot_feature_maps(model, train_dataset):
     output = model(data)
 
     plt.imshow(data.reshape(28,-1)) 
-    plt.savefig('original_image.pdf')
+    plt.savefig('original_image.jpg')
 
     k=0
     act = activation['conv1'].squeeze()
@@ -164,7 +164,7 @@ def plot_feature_maps(model, train_dataset):
         for j in range(act.size(0)//2):
             ax[i,j].imshow(act[k].detach().cpu().numpy())
             k+=1  
-            plt.savefig('activation_maps.pdf') 
+            plt.savefig('activation_maps.jpg') 
 
 def main():
     parser = argparse.ArgumentParser()
@@ -178,7 +178,7 @@ def main():
     parser.add_argument('-l2_decay', type=float, default=0)
     parser.add_argument('-dropout', type=float, default=0.3)
     parser.add_argument('-optimizer',
-                        choices=['sgd', 'adam'], default='sgd')
+                        choices=['sgd', 'adam'], default='adam')
     
     opt = parser.parse_args()
 
