@@ -73,7 +73,7 @@ class Encoder(nn.Module):
     def __init__(
         self,
         src_vocab_size,
-        hidden_size,
+        hidden_size, # embedding_dim
         padding_idx,
         dropout,
     ):
@@ -82,13 +82,13 @@ class Encoder(nn.Module):
         self.dropout = dropout
 
         self.embedding = nn.Embedding(
-            src_vocab_size,
-            hidden_size,
+            src_vocab_size, # input_size
+            hidden_size, # embedding_dim
             padding_idx=padding_idx,
         )
         self.lstm = nn.LSTM(
-            hidden_size,
-            self.hidden_size,
+            hidden_size, # embedding_dim
+            self.hidden_size, # num_layers = lstm_layers
             bidirectional=True,
             batch_first=True,
         )
@@ -109,7 +109,26 @@ class Encoder(nn.Module):
         # - Use torch.nn.utils.rnn.pad_packed_sequence to unpack the packed sequences
         #   (after passing them to the LSTM)
         #############################################
-        raise NotImplementedError
+
+        #h0 = torch.zeros(2, src.size(0), self.hidden_size).to('cpu')
+        #c0 = torch.zeros(2, src.size(0), self.hidden_size).to('cpu')
+
+        embbeded = self.embedding(src)
+        self.dropout(embbeded)
+        packed_embedded = torch.nn.utils.rnn.pack_padded_sequence(embbeded, lengths, batch_first=True, enforce_sorted=False)
+        output, final_hidden = self.lstm(packed_embedded)
+        enc_output, _ = torch.nn.utils.rnn.pad_packed_sequence(output, batch_first=True)
+        #enc_output = unpacked_output[:, -1, :]
+
+
+
+        print("batch size is: ", src.size(0))
+        print("max_src_len size is: ", src.size(1))
+        print("hidden_size size is:", self.hidden_size)
+
+        print(enc_output.size())
+        print(final_hidden[0].size())
+
         #############################################
         # END OF YOUR CODE
         #############################################
@@ -117,7 +136,7 @@ class Encoder(nn.Module):
         # final_hidden: tuple with 2 tensors
         # each tensor is (num_layers * num_directions, batch_size, hidden_size)
         # TODO: Uncomment the following line when you implement the forward pass
-        # return enc_output, final_hidden
+        return enc_output, final_hidden
 
 
 class Decoder(nn.Module):
