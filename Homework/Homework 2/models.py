@@ -109,25 +109,26 @@ class Encoder(nn.Module):
         # - Use torch.nn.utils.rnn.pad_packed_sequence to unpack the packed sequences
         #   (after passing them to the LSTM)
         #############################################
-
-        #h0 = torch.zeros(2, src.size(0), self.hidden_size).to('cpu')
-        #c0 = torch.zeros(2, src.size(0), self.hidden_size).to('cpu')
-
+        
+        # Embed the source language tokens
         embbeded = self.embedding(src)
-        self.dropout(embbeded)
+
+        # Apply dropout
+        embbeded = self.dropout(embbeded)
+
+        # Pack the padded sequence (handle the variabçe input length)
         packed_embedded = torch.nn.utils.rnn.pack_padded_sequence(embbeded, lengths, batch_first=True, enforce_sorted=False)
+        
+        # LSTM 
         output, final_hidden = self.lstm(packed_embedded)
+
+        # Dropout applied to the output
+        output = self.dropout(output) # WASNT HERE
+
+        # Unpack the output
         enc_output, _ = torch.nn.utils.rnn.pad_packed_sequence(output, batch_first=True)
-        #enc_output = unpacked_output[:, -1, :]
 
-
-
-        print("batch size is: ", src.size(0))
-        print("max_src_len size is: ", src.size(1))
-        print("hidden_size size is:", self.hidden_size)
-
-        print(enc_output.size())
-        print(final_hidden[0].size())
+        # The dimensions were verified;
 
         #############################################
         # END OF YOUR CODE
@@ -181,8 +182,11 @@ class Decoder(nn.Module):
         # bidirectional encoder outputs are concatenated, so we may need to
         # reshape the decoder states to be of size (num_layers, batch_size, 2*hidden_size)
         # if they are of size (num_layers*num_directions, batch_size, hidden_size)
+        
         if dec_state[0].shape[0] == 2:
             dec_state = reshape_state(dec_state)
+
+        # The dimensions were verified;
 
         #############################################
         # TODO: Implement the forward pass of the decoder
@@ -199,7 +203,38 @@ class Decoder(nn.Module):
         #         src_lengths,
         #     )
         #############################################
-        raise NotImplementedError
+
+        # Embed the target tokens, tgt
+        if(tgt.size(1)>1):
+            # At test time, we give one token to the decoder in order to generate the next one.
+            # We need to account for that by slicing the tgt
+            tgt_embedded = self.embedding(tgt[: , :-1])
+        else:
+            tgt_embedded = self.embedding(tgt)
+
+        # Apply dropout to target token
+        tgt_embedded = self.dropout(tgt_embedded)
+
+        # Initialize the outputs
+        outputs = []
+
+        # We'll generate each token utilizing the previous token and previous decoder state (auto-regressive LSTM)
+        for i in range(tgt_embedded.size(1)):
+            #tgt_embedded = self.embedding(tgt) # WAS HERE
+
+            output, dec_state = self.lstm(tgt_embedded[:, i, :].unsqueeze(1), dec_state)
+
+            # Dropout output at each iteration
+            output = self.dropout(output)
+
+            # Append the output
+            outputs.append(output)
+
+        # Concatenate outputs together at the end of the loop
+        outputs = torch.cat(outputs, dim=1)
+
+        # The dimensions were verified;
+
         #############################################
         # END OF YOUR CODE
         #############################################
@@ -207,7 +242,7 @@ class Decoder(nn.Module):
         # dec_state: tuple with 2 tensors
         # each tensor is (num_layers, batch_size, hidden_size)
         # TODO: Uncomment the following line when you implement the forward pass
-        # return outputs, dec_state
+        return outputs, dec_state
 
 
 class Seq2Seq(nn.Module):
