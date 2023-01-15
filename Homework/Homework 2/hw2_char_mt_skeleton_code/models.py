@@ -29,7 +29,7 @@ class Attention(nn.Module):
         encoder_outputs,
         src_lengths,
     ):
-        # query: (batch_size, 1, hidden_dim)
+        # query: (batch_size, max_tgt_len, hidden_dim)
         # encoder_outputs: (batch_size, max_src_len, hidden_dim)
         # src_lengths: (batch_size)
         # we will need to use this mask to assign float("-inf") in the attention scores
@@ -38,6 +38,9 @@ class Attention(nn.Module):
         # src_seq_mask: (batch_size, max_src_len)
         # the "~" is the elementwise NOT operator
         src_seq_mask = ~self.sequence_mask(src_lengths)
+        
+        # src_seq_mask = [64, 1, 19]
+        src_seq_mask = src_seq_mask.unsqueeze(1)
         #############################################
         # TODO: Implement the forward pass of the attention layer
         # Hints:
@@ -47,13 +50,35 @@ class Attention(nn.Module):
         # - Use torch.tanh to do the tanh
         # - Use torch.masked_fill to do the masking of the padding tokens
         #############################################
-        raise NotImplementedError
+        
+        # query = [64, 21, 128]
+        # encoder_outputs = [64, 19, 128]
+        # src_lengths = [64]
+
+        batch_size, max_tgt_len, hidden_dim = query.size()
+        
+        query = query.reshape(batch_size * max_tgt_len, hidden_dim)
+        query = self.linear_in(query)
+        query = query.reshape(batch_size, max_tgt_len, hidden_dim)
+
+        # attn_score = [64, 21, 19]
+        attn_score = torch.bmm(query, encoder_outputs.transpose(1, 2).contiguous())
+
+        attn_score = torch.masked_fill(attn_score, src_seq_mask, float("-inf"))
+
+        alignment = torch.softmax(attn_score, -1)
+
+        c = torch.bmm(alignment, encoder_outputs)
+
+        # attn_out = [64, 21, 128]
+        attn_out = torch.tanh(self.linear_out(torch.cat([c, query], dim=2)))
+
         #############################################
         # END OF YOUR CODE
         #############################################
-        # attn_out: (batch_size, 1, hidden_size)
-        # TODO: Uncomment the following line when you implement the forward pass
-        # return attn_out
+        # attn_out: (batch_size, max_tgt_len, hidden_size)
+
+        return attn_out
 
     def sequence_mask(self, lengths):
         """
@@ -109,15 +134,48 @@ class Encoder(nn.Module):
         # - Use torch.nn.utils.rnn.pad_packed_sequence to unpack the packed sequences
         #   (after passing them to the LSTM)
         #############################################
-        raise NotImplementedError
+        
+        # src = [64, 19]
+
+        # embed = [64, 19, 128]
+        embed = self.dropout(self.embedding(src))
+
+        packed_embed = torch.nn.utils.rnn.pack_padded_sequence(embed, lengths, batch_first=True, enforce_sorted=False)
+        
+        # final_hidden[0] = hidden = [2, 64, 64]
+        # final_hidden[1] = cell = [2, 64, 64]
+        packed_output, final_hidden = self.lstm(packed_embed)
+
+        # enc_output = [64, 19, 128], 128
+        enc_output, _ = torch.nn.utils.rnn.pad_packed_sequence(packed_output, batch_first=True)
+
+        enc_output = self.dropout(enc_output)
+
+        # final_hidden[0] = hidden = [1, 64, 128] -> do we need 2 instead of 1 (nLayers * nDirections or nLayers) 
+        # final_hidden[1] = cell = [1, 64, 128] -> do we need 2 instead of 1 (nLayers * nDirections or nLayers) 
+        final_hidden = self.reshape_hidden(final_hidden)
+
         #############################################
         # END OF YOUR CODE
         #############################################
         # enc_output: (batch_size, max_src_len, hidden_size)
         # final_hidden: tuple with 2 tensors
         # each tensor is (num_layers * num_directions, batch_size, hidden_size)
-        # TODO: Uncomment the following line when you implement the forward pass
-        # return enc_output, final_hidden
+        
+        return enc_output, final_hidden
+    
+    def reshape_hidden(self, hidden):
+        if isinstance(hidden, tuple):
+            return tuple(self.merge_tensor(h) for h in hidden)
+        else:
+            return self.merge_tensor(hidden)
+
+    def merge_tensor(self, state_tensor):
+        forward_states = state_tensor[::2]
+        backward_states = state_tensor[1::2]
+        final_states = torch.cat([forward_states, backward_states], 2)
+        
+        return final_states
 
 
 class Decoder(nn.Module):
@@ -139,19 +197,20 @@ class Decoder(nn.Module):
         )
 
         self.dropout = nn.Dropout(self.dropout)
+
         self.lstm = nn.LSTM(
             self.hidden_size,
             self.hidden_size,
             batch_first=True,
         )
 
-        self.attn = attn
+        self.attn = attn #TODO replace with attn
 
     def forward(
         self,
-        tgt,
-        dec_state,
-        encoder_outputs,
+        tgt, #input
+        dec_state, #hidden
+        encoder_outputs, #context
         src_lengths,
     ):
         # tgt: (batch_size, max_tgt_len)
@@ -161,7 +220,8 @@ class Decoder(nn.Module):
         # src_lengths: (batch_size)
         # bidirectional encoder outputs are concatenated, so we may need to
         # reshape the decoder states to be of size (num_layers, batch_size, 2*hidden_size)
-        # if they are of size (num_layers*num_directions, batch_size, hidden_size)
+        # if they are of size (num_layers * num_directions, batch_size, hidden_size)
+
         if dec_state[0].shape[0] == 2:
             dec_state = reshape_state(dec_state)
 
@@ -180,15 +240,29 @@ class Decoder(nn.Module):
         #         src_lengths,
         #     )
         #############################################
-        raise NotImplementedError
+        
+        if(tgt.size(1) > 1):
+            tgt_embedded = self.embedding(tgt[: , :-1])
+        else:
+            tgt_embedded = self.embedding(tgt)
+
+        tgt_embedded = self.dropout(tgt_embedded)
+
+        outputs, dec_state = self.lstm(tgt_embedded, dec_state)
+        
+        if self.attn is not None:
+            outputs = self.attn(outputs, encoder_outputs, src_lengths)
+            
+        outputs = self.dropout(outputs)
+
         #############################################
         # END OF YOUR CODE
         #############################################
         # outputs: (batch_size, max_tgt_len, hidden_size)
         # dec_state: tuple with 2 tensors
         # each tensor is (num_layers, batch_size, hidden_size)
-        # TODO: Uncomment the following line when you implement the forward pass
-        # return outputs, dec_state
+        
+        return outputs, dec_state
 
 
 class Seq2Seq(nn.Module):
